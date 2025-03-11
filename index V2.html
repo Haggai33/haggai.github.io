@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>טופס הרשמה - מרכז כיוון</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .hidden { display: none; }
+    .error { border-color: #dc2626 !important; }
+    .error-message { color: #dc2626; font-size: 0.875rem; display: none; }
+
+    .option-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 9999px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      background-color: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      user-select: none;
+    }
+    .option-chip input { display: none; }
+    .option-chip.selected {
+      background-color: #3b82f6 !important;
+      color: white !important;
+      border-color: #3b82f6 !important;
+    }
+
+    .section-box {
+      background-color: #f8fafc;
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      text-align: center;
+    }
+
+    .form-container {
+      position: relative;
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 110;
+      background-color: #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 768px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .top-bar-details { font-size: 0.9rem; }
+    .expand-btn {
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      border-radius: 9999px;
+      background: transparent;
+      border: none;
+    }
+
+    .step2-content { margin-top: 50px; }
+
+    .fixed-controls {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 768px;
+      background-color: white;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+    .fixed-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .bottom-animation {
+      background-color: #f3f4f6;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 8px;
+      text-align: center;
+    }
+    .bottom-animation span {
+      display: inline-block;
+      animation: scrollText 20s linear infinite;
+    }
+    @keyframes scrollText {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .logo-header {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #3b82f6;
+      opacity: 0;
+      animation: fadeSlideUp 2s forwards;
+    }
+    @keyframes fadeSlideUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 1024px) {
+      .form-container {
+        transform: scale(0.75);
+        transform-origin: top center;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="form-container mx-auto w-full max-w-3xl bg-white p-8 rounded-lg shadow-lg" style="padding-bottom: 180px;">
+    <!-- Header (shared by both steps) -->
+    <div class="text-center mb-6">
+      <div class="logo-header">מרכז הלמידה - הדרך שלך להצלחה...</div>
+      <p class="text-gray-600">טופס הרשמה מקוון</p>
+    </div>
+
+    <form id="registerForm">
+      <!-- Step 1 -->
+      <div id="step1">
+        <h2 class="text-xl font-bold mb-4 text-center">פרטים אישיים</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block mb-2 font-medium">שם פרטי *</label>
+            <input type="text" id="firstName" class="w-full border border-gray-300 rounded p-2" required>
+            <small class="error-message">שדה חובה</small>
+          </div>
+          <div>
+            <label class="block mb-2 font-medium">שם משפחה (לא חובה)</label>
+            <input type="text" id="lastName" class="w-full border border-gray-300 rounded p-2">
+            <small class="error-message"></small>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label class="block mb-2 font-medium">תעודת זהות *</label>
+            <input type="text" id="idNumber" maxlength="9" class="w-full border border-gray-300 rounded p-2" required>
+            <small class="error-message">יש להזין 9 ספרות</small>
+          </div>
+          <div>
+            <label class="block mb-2 font-medium">מספר טלפון *</label>
+            <input type="tel" id="phone" class="w-full border border-gray-300 rounded p-2" required>
+            <small class="error-message">יש להזין מספר תקין (10 ספרות)</small>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label class="block mb-2 font-medium">אימייל *</label>
+            <input type="email" id="email" class="w-full border border-gray-300 rounded p-2" required>
+            <small class="error-message">כתובת אימייל לא תקינה</small>
+          </div>
+          <div>
+            <label class="block mb-2 font-medium">תאריך בחינה</label>
+            <input type="date" id="examDate" class="w-full border border-gray-300 rounded p-2">
+            <small id="examDateError" class="error-message">תאריך הבחינה חייב להיות היום או מוקדם יותר</small>
+          </div>
+        </div>
+
+        <label class="block mt-4 mb-2 font-medium">רקע *</label>
+        <textarea id="background" class="w-full border border-gray-300 rounded p-2" rows="3" required></textarea>
+        <small id="backgroundError" class="error-message">יש להזין טקסט</small>
+
+        <label class="block mt-4 mb-2 font-medium">סיבת הפנייה *</label>
+        <textarea id="reason" class="w-full border border-gray-300 rounded p-2" rows="3" required></textarea>
+        <small id="reasonError" class="error-message">יש להזין טקסט</small>
+
+        <label class="block mt-4 mb-2 font-medium">תוצאות מבחני כישורים</label>
+        <textarea id="testResults" class="w-full border border-gray-300 rounded p-2" rows="3"></textarea>
+
+        <!-- Fixed controls (Step 1) -->
+        <div class="fixed-controls">
+          <div class="fixed-buttons">
+            <button type="button" onclick="clearSession()" class="bg-red-500 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+              נקה
+            </button>
+            <button type="button" onclick="nextStep()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+              הבא
+            </button>
+          </div>
+          <!-- Place the bottom animation here exactly below the buttons -->
+          <div class="bottom-animation">
+            <span>צעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדו-צעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדולצעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדול</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="step2" class="hidden">
+        <!-- Sticky top bar -->
+        <div id="topBarContainer" class="top-bar">
+          <div class="top-bar-details">
+            <span id="tbName">שם: </span> | 
+            <span id="tbPhone">טלפון: </span> | 
+            <span id="tbID">תעודת זהות: </span> | 
+            <span id="tbExamDate">תאריך בחינה: </span> | 
+            <span id="tbEmail">אימייל: </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="expand-btn p-2" onclick="toggleExpand()" aria-label="הצג/הסתר פרטים נוספים">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="blue" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button type="button" class="expand-btn p-2" onclick="togglePin()" aria-label="נעץ/בטל נעיצה">
+              <svg id="pinIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="blue" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 3H8v2H5v2l3 3v3.586l-2.293 2.293A1 1 0 0 0 6 18h12a1 1 0 0 0 .707-1.707L16.414 14V10.414l3-3V5h-3V3z" />
+              </svg>
+            </button>
+          </div>
+          <div id="expandBar" class="hidden bg-gray-100 p-4 rounded mt-2 w-full">
+            <p><strong>רקע:</strong> <span id="expBackground"></span></p>
+            <p><strong>סיבת הפנייה:</strong> <span id="expReason"></span></p>
+            <p><strong>תוצאות מבחני כישורים:</strong> <span id="expTestResults"></span></p>
+          </div>
+        </div>
+
+        <div class="step2-content">
+          <h2 class="text-xl font-bold mb-4 text-center">העדפות ושירותים</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="section-box">
+              <h3 class="text-lg font-bold mb-2">כישורים ומיומנויות</h3>
+              <div class="flex flex-wrap gap-2">
+                <label class="option-chip">
+                  <input type="checkbox" name="skills" value="ניהול צוות" onchange="toggleChip(this)">
+                  ניהול צוות
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="skills" value="תכנות" onchange="toggleChip(this)">
+                  תכנות
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="skills" value="שיווק דיגיטלי" onchange="toggleChip(this)">
+                  שיווק דיגיטלי
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="skills" value="שירות לקוחות" onchange="toggleChip(this)">
+                  שירות לקוחות
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="skills" value="עיצוב גרפי" onchange="toggleChip(this)">
+                  עיצוב גרפי
+                </label>
+              </div>
+            </div>
+            <div class="section-box">
+              <h3 class="text-lg font-bold mb-2">ידע טכנולוגי ושפות</h3>
+              <div class="flex flex-wrap gap-2">
+                <label class="option-chip">
+                  <input type="checkbox" name="tech" value="Python" onchange="toggleChip(this)">
+                  Python
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="tech" value="JavaScript" onchange="toggleChip(this)">
+                  JavaScript
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="tech" value="SQL" onchange="toggleChip(this)">
+                  SQL
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="tech" value="אנגלית" onchange="toggleChip(this)">
+                  אנגלית
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="tech" value="עברית" onchange="toggleChip(this)">
+                  עברית
+                </label>
+              </div>
+            </div>
+            <div class="section-box">
+              <h3 class="text-lg font-bold mb-2">העדפות תעסוקתיות</h3>
+              <div class="flex flex-wrap gap-2">
+                <label class="option-chip">
+                  <input type="checkbox" name="employment" value="משרה מלאה" onchange="toggleChip(this)">
+                  משרה מלאה
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="employment" value="משרה חלקית" onchange="toggleChip(this)">
+                  משרה חלקית
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="employment" value="עבודה מרחוק" onchange="toggleChip(this)">
+                  עבודה מרחוק
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="employment" value="פרילנס" onchange="toggleChip(this)">
+                  פרילנס
+                </label>
+              </div>
+            </div>
+            <div class="section-box">
+              <h3 class="text-lg font-bold mb-2">חסמים</h3>
+              <div class="flex flex-wrap gap-2">
+                <label class="option-chip">
+                  <input type="checkbox" name="barriers" value="חוסר ניסיון" onchange="toggleChip(this)">
+                  חוסר ניסיון
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="barriers" value="חוסר גישה טכנולוגית" onchange="toggleChip(this)">
+                  חוסר גישה טכנולוגית
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="barriers" value="חוסר השכלה רלוונטית" onchange="toggleChip(this)">
+                  חוסר השכלה רלוונטית
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div class="section-box">
+              <h3 class="text-lg font-bold mb-2">שירותים נוספים במרכז כיון</h3>
+              <div class="flex flex-wrap gap-2">
+                <label class="option-chip">
+                  <input type="checkbox" name="centerServices" value="קורסי השלמה באנגלית" onchange="toggleChip(this)">
+                  קורסי השלמה באנגלית
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="centerServices" value="קורס הכרת המחשב" onchange="toggleChip(this)">
+                  קורס הכרת המחשב
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="centerServices" value="קורס אקסל" onchange="toggleChip(this)">
+                  קורס אקסל
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="centerServices" value="קורס סיוע טכנולוגי" onchange="toggleChip(this)">
+                  קורס סיוע טכנולוגי
+                </label>
+              </div>
+            </div>
+            <div class="section-box">
+              <h3 class="text-lg font-bold mb-2">שירותים נוספים כלליים</h3>
+              <div class="flex flex-wrap gap-2">
+                <label class="option-chip">
+                  <input type="checkbox" name="generalServices" value="השלמת בגרויות" onchange="toggleChip(this)">
+                  השלמת בגרויות
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="generalServices" value="תוכנית זרקור" onchange="toggleChip(this)">
+                  תוכנית "זרקור" ללימודים אקדמיים
+                </label>
+                <label class="option-chip">
+                  <input type="checkbox" name="generalServices" value="התאמה טכנולוגית" onchange="toggleChip(this)">
+                  התאמה טכנולוגית
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <label class="block mt-6 mb-2 font-medium">סיכום והמלצות *</label>
+          <textarea id="summaryText" class="w-full border border-gray-300 rounded p-2" rows="3" required></textarea>
+          <small id="summaryTextError" class="error-message">שדה חובה</small>
+
+          <label class="block mt-4 mb-2 font-medium">המלצות לחקר מקצועות</label>
+          <textarea id="careerAdvice" class="w-full border border-gray-300 rounded p-2" rows="3"></textarea>
+
+          <label class="block mt-4 mb-2 font-medium">העלאת קבצים</label>
+          <input type="file" id="fileUpload" class="w-full border border-gray-300 rounded p-2" multiple>
+          <div id="fileListContainer"></div>
+
+          <label class="block mt-4 mb-2 font-medium">הערות נוספות</label>
+          <div id="additionalNotesContainer">
+            <div class="note-row flex items-center mb-2">
+              <textarea class="w-full border border-gray-300 rounded p-2" rows="2"></textarea>
+            </div>
+          </div>
+          <button type="button" onclick="addNoteRow()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded shadow-md transition-colors">
+            הוסף שורה
+          </button>
+
+          <label class="block mt-4 mb-2 font-medium">שם נציג מטפל:</label>
+          <input type="text" id="representativeName" class="w-full border border-gray-300 rounded p-2" placeholder="שם נציג מטפל">
+        </div>
+
+        <!-- Fixed controls (Step 2) -->
+        <div class="fixed-controls" dir="rtl">
+          <div class="fixed-buttons">
+            <button type="button" onclick="clearSession()" class="bg-red-500 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+              נקה
+            </button>
+            <div class="flex gap-4">
+              <button type="button" onclick="prevStep()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+                חזור
+              </button>
+              <button type="button" onclick="previewForm()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+                תצוגה מקדימה
+              </button>
+              <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+                שלח
+              </button>
+            </div>
+          </div>
+          <!-- Bottom animation in step 2 -->
+          <div class="bottom-animation">
+            <span>צעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדול - צעד קטן לשינוי גדול</span>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="hidden modal">
+    <div class="modal-content">
+      <h2 class="text-2xl font-bold mb-4">מרכז כיוון</h2>
+      <p class="mb-6">הטופס נשלח בהצלחה</p>
+      <button type="button" onclick="resetForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+        שלח טופס נוסף
+      </button>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="hidden modal">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4">תצוגה מקדימה</h2>
+      <div id="previewContent" class="text-sm text-right"></div>
+      <button type="button" onclick="closePreview()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full shadow-md transition-colors">
+        סגור
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* ====== 1) Pin & Expand ====== */
+    let pinned = localStorage.getItem("pinned") === "true";
+    let expandTimeout = null;
+    function updatePinIcon() {
+      const pinIcon = document.getElementById("pinIcon");
+      pinIcon.setAttribute("stroke", pinned ? "green" : "blue");
+    }
+    function togglePin() {
+      pinned = !pinned;
+      localStorage.setItem("pinned", pinned ? "true" : "false");
+      updatePinIcon();
+      const expandBar = document.getElementById("expandBar");
+      if (!pinned && !expandBar.classList.contains("hidden")) {
+        clearTimeout(expandTimeout);
+        expandTimeout = setTimeout(() => { expandBar.classList.add("hidden"); }, 3000);
+      } else if (pinned) {
+        clearTimeout(expandTimeout);
+      }
+    }
+    function toggleExpand() {
+      const expandBar = document.getElementById("expandBar");
+      if (expandBar.classList.contains("hidden")) {
+        expandBar.classList.remove("hidden");
+        if (!pinned) {
+          clearTimeout(expandTimeout);
+          expandTimeout = setTimeout(() => { expandBar.classList.add("hidden"); }, 3000);
+        }
+      } else {
+        expandBar.classList.add("hidden");
+      }
+    }
+
+    /* ====== 2) Format Date ====== */
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const parts = dateStr.split("-");
+      return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : dateStr;
+    }
+
+    /* ====== 3) Toggle Chip Style ====== */
+    function toggleChip(checkbox) {
+      if (checkbox.checked) {
+        checkbox.parentElement.classList.add("selected");
+      } else {
+        checkbox.parentElement.classList.remove("selected");
+      }
+    }
+
+    /* ====== 4) File Handling ====== */
+    let fileList = [];
+    document.getElementById("fileUpload").addEventListener("change", function(e){
+      for (let i = 0; i < e.target.files.length; i++) {
+        fileList.push(e.target.files[i]);
+      }
+      updateFileInput();
+      displayFileList();
+    });
+    function updateFileInput() {
+      const dt = new DataTransfer();
+      fileList.forEach(file => dt.items.add(file));
+      document.getElementById("fileUpload").files = dt.files;
+    }
+    function displayFileList() {
+      const container = document.getElementById("fileListContainer");
+      container.innerHTML = "";
+      fileList.forEach((file, index) => {
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-2 border border-gray-300 rounded mb-2";
+        const span = document.createElement("span");
+        span.textContent = file.name;
+        const btn = document.createElement("button");
+        btn.textContent = "×";
+        btn.className = "text-red-600 font-bold";
+        btn.addEventListener("click", function(){
+          fileList.splice(index, 1);
+          updateFileInput();
+          displayFileList();
+        });
+        div.appendChild(span);
+        div.appendChild(btn);
+        container.appendChild(div);
+      });
+    }
+
+    /* ====== 5) Navigation & Top Bar Update ====== */
+    function updateTopBar() {
+      document.getElementById("tbName").innerText =
+        "שם: " + document.getElementById("firstName").value + " " + document.getElementById("lastName").value;
+      document.getElementById("tbPhone").innerText =
+        "טלפון: " + document.getElementById("phone").value;
+      document.getElementById("tbID").innerText =
+        "תעודת זהות: " + document.getElementById("idNumber").value;
+      document.getElementById("tbExamDate").innerText =
+        "תאריך בחינה: " + formatDate(document.getElementById("examDate").value);
+      document.getElementById("tbEmail").innerText =
+        "אימייל: " + document.getElementById("email").value;
+      document.getElementById("expBackground").innerText =
+        document.getElementById("background").value;
+      document.getElementById("expReason").innerText =
+        document.getElementById("reason").value;
+      document.getElementById("expTestResults").innerText =
+        document.getElementById("testResults").value;
+    }
+    function nextStep() {
+      if (!validateStep1() || !validateLastName()) return;
+      sessionStorage.setItem("currentStep", "step2");
+      updateTopBar();
+      document.getElementById("step1").classList.add("hidden");
+      document.getElementById("step2").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+    function prevStep() {
+      sessionStorage.setItem("currentStep", "step1");
+      document.getElementById("step2").classList.add("hidden");
+      document.getElementById("step1").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+
+    /* ====== 6) Add Note Row ====== */
+    function addNoteRow() {
+      const container = document.getElementById("additionalNotesContainer");
+      const row = document.createElement("div");
+      row.className = "note-row flex items-center mb-2";
+      const textarea = document.createElement("textarea");
+      textarea.className = "w-full border border-gray-300 rounded p-2";
+      textarea.rows = 2;
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "remove-note ml-2 bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded-full";
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", function() {
+        if (textarea.value.trim() !== "") {
+          alert("יש למחוק את הטקסט לפני הסגירה");
+        } else {
+          container.removeChild(row);
+        }
+      });
+      row.appendChild(textarea);
+      row.appendChild(removeBtn);
+      container.appendChild(row);
+    }
+
+    /* ====== 7) Preview Form ====== */
+    function previewForm() {
+      const previewContent = document.getElementById("previewContent");
+      previewContent.innerHTML = "";
+      const fmtDate = val => val ? formatDate(val) : "";
+      const addField = (label, value, extraBreak = true) => {
+        if (!value) return;
+        previewContent.innerHTML += `<strong>${label}:</strong> ${value}<br>${extraBreak ? "<br>" : ""}`;
+      };
+      addField("שם פרטי", document.getElementById("firstName").value.trim());
+      addField("שם משפחה", document.getElementById("lastName").value.trim());
+      addField("תעודת זהות", document.getElementById("idNumber").value.trim());
+      addField("טלפון", document.getElementById("phone").value.trim());
+      addField("אימייל", document.getElementById("email").value.trim());
+      addField("תאריך בחינה", fmtDate(document.getElementById("examDate").value.trim()));
+
+      const skills = Array.from(document.querySelectorAll("input[name='skills']:checked"))
+        .map(el => el.parentElement.textContent.trim());
+      if (skills.length) {
+        previewContent.innerHTML += "<strong>כישורים ומיומנויות:</strong><br>" + skills.join("<br>") + "<br><br>";
+      }
+      const tech = Array.from(document.querySelectorAll("input[name='tech']:checked"))
+        .map(el => el.parentElement.textContent.trim());
+      if (tech.length) {
+        previewContent.innerHTML += "<strong>ידע טכנולוגי ושפות:</strong><br>" + tech.join("<br>") + "<br><br>";
+      }
+      const employment = Array.from(document.querySelectorAll("input[name='employment']:checked"))
+        .map(el => el.parentElement.textContent.trim());
+      if (employment.length) {
+        previewContent.innerHTML += "<strong>העדפות תעסוקתיות:</strong><br>" + employment.join("<br>") + "<br><br>";
+      }
+      const barriers = Array.from(document.querySelectorAll("input[name='barriers']:checked"))
+        .map(el => el.parentElement.textContent.trim());
+      if (barriers.length) {
+        previewContent.innerHTML += "<strong>חסמים:</strong><br>" + barriers.join("<br>") + "<br><br>";
+      }
+      const centerServices = Array.from(document.querySelectorAll("input[name='centerServices']:checked"))
+        .map(el => el.parentElement.textContent.trim());
+      if (centerServices.length) {
+        previewContent.innerHTML += "<strong>שירותים נוספים במרכז כיון:</strong><br>" + centerServices.join("<br>") + "<br><br>";
+      }
+      const generalServices = Array.from(document.querySelectorAll("input[name='generalServices']:checked"))
+        .map(el => el.parentElement.textContent.trim());
+      if (generalServices.length) {
+        previewContent.innerHTML += "<strong>שירותים נוספים כלליים:</strong><br>" + generalServices.join("<br>") + "<br><br>";
+      }
+
+      addField("סיכום והמלצות", document.getElementById("summaryText").value.trim());
+      addField("המלצות לחקר מקצועות", document.getElementById("careerAdvice").value.trim());
+
+      if (fileList.length) {
+        previewContent.innerHTML += "<strong>קבצים:</strong><br>" + fileList.map(f => f.name).join("<br>") + "<br><br>";
+      }
+
+      const noteTextareas = document.querySelectorAll("#additionalNotesContainer textarea");
+      const notesArray = [];
+      noteTextareas.forEach(note => {
+        if (note.value.trim()) {
+          notesArray.push(note.value.trim());
+        }
+      });
+      if (notesArray.length) {
+        previewContent.innerHTML += "<strong>הערות נוספות:</strong> " + notesArray.join(" | ") + "<br><br>";
+      }
+      addField("שם נציג מטפל", document.getElementById("representativeName").value.trim(), false);
+
+      document.getElementById("previewModal").classList.remove("hidden");
+    }
+    function closePreview() {
+      document.getElementById("previewModal").classList.add("hidden");
+    }
+
+    /* ====== 8) Validation ====== */
+    function validateFirstName() {
+      const input = document.getElementById("firstName");
+      const errorElement = input.nextElementSibling;
+      const value = input.value.trim();
+      if (value === "") {
+        input.classList.add("error");
+        errorElement.textContent = "שדה חובה";
+        errorElement.style.display = "block";
+        return false;
+      }
+      if (/\d/.test(value)) {
+        input.classList.add("error");
+        errorElement.textContent = "שם פרטי לא יכול להכיל מספרים";
+        errorElement.style.display = "block";
+        return false;
+      }
+      input.classList.remove("error");
+      errorElement.style.display = "none";
+      return true;
+    }
+    function validateLastName() {
+      const input = document.getElementById("lastName");
+      const errorElement = input.nextElementSibling;
+      const value = input.value.trim();
+      if (value !== "" && /\d/.test(value)) {
+        input.classList.add("error");
+        errorElement.textContent = "שם משפחה לא יכול להכיל מספרים";
+        errorElement.style.display = "block";
+        return false;
+      }
+      input.classList.remove("error");
+      errorElement.style.display = "none";
+      return true;
+    }
+    function validateEmail() {
+      const input = document.getElementById("email");
+      const errorElement = input.nextElementSibling;
+      const value = input.value.trim();
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if(value === ""){
+        input.classList.add("error");
+        errorElement.textContent = "שדה חובה";
+        errorElement.style.display = "block";
+        return false;
+      }
+      if(!regex.test(value)){
+        input.classList.add("error");
+        errorElement.textContent = "כתובת אימייל לא תקינה";
+        errorElement.style.display = "block";
+        return false;
+      }
+      input.classList.remove("error");
+      errorElement.style.display = "none";
+      return true;
+    }
+    function validateFieldGeneric(input, regex = null, minWords = 0, errorMsg = "שדה לא תקין") {
+      const errorElement = input.nextElementSibling;
+      const value = input.value.trim();
+      if (value === "") {
+        input.classList.add("error");
+        errorElement.textContent = errorMsg;
+        errorElement.style.display = "block";
+        return false;
+      }
+      if (minWords > 0) {
+        const words = value.split(/\s+/);
+        if (words.length < minWords) {
+          input.classList.add("error");
+          errorElement.textContent = errorMsg;
+          errorElement.style.display = "block";
+          return false;
+        }
+      }
+      if (regex && !regex.test(value)) {
+        input.classList.add("error");
+        errorElement.textContent = errorMsg;
+        errorElement.style.display = "block";
+        return false;
+      }
+      input.classList.remove("error");
+      errorElement.style.display = "none";
+      return true;
+    }
+    function validateExamDate() {
+      const input = document.getElementById("examDate");
+      const errorElement = input.nextElementSibling;
+      const value = input.value;
+      if (!value) {
+        input.classList.remove("error");
+        errorElement.style.display = "none";
+        return true;
+      }
+      const selectedDate = new Date(value + "T00:00:00");
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      if (selectedDate.getTime() > today.getTime()) {
+        input.classList.add("error");
+        errorElement.textContent = "תאריך הבחינה חייב להיות היום או מוקדם יותר";
+        errorElement.style.display = "block";
+        return false;
+      }
+      input.classList.remove("error");
+      errorElement.style.display = "none";
+      return true;
+    }
+    function validateStep1() {
+      let valid = true;
+      if (!validateFirstName()) valid = false;
+      if (!validateFieldGeneric(document.getElementById("idNumber"), /^\d{9}$/, 0, "תעודת זהות חייבת להיות 9 ספרות")) valid = false;
+      if (!validateFieldGeneric(document.getElementById("phone"), /^\d{10}$/, 0, "מספר טלפון חייב להיות 10 ספרות")) valid = false;
+      if (!validateEmail()) valid = false;
+      if (!validateFieldGeneric(document.getElementById("background"), null, 1, "יש להזין טקסט")) valid = false;
+      if (!validateFieldGeneric(document.getElementById("reason"), null, 1, "יש להזין טקסט")) valid = false;
+      if (!validateExamDate()) valid = false;
+      return valid;
+    }
+
+    /* ====== 9) ID & Email Input Adjustments (Don't allow non-digit or Hebrew) ====== */
+    document.getElementById("idNumber").addEventListener("input", function() {
+      const self = this;
+      setTimeout(function() {
+        let newValue = self.value.replace(/\D/g, ""); 
+        self.value = newValue.slice(0,9);
+      }, 0);
+    });
+    document.getElementById("email").addEventListener("input", function() {
+      this.value = this.value.replace(/[\u0590-\u05FF]/g, ""); 
+    });
+
+    /* ====== 10) Form Submission & Reset ====== */
+    document.getElementById("registerForm").addEventListener("submit", function(event) {
+      if (!validateStep1() || !validateLastName()) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      sessionStorage.clear();
+      document.getElementById("registerForm").classList.add("hidden");
+      document.getElementById("successModal").classList.remove("hidden");
+    });
+    function resetForm() {
+      sessionStorage.clear();
+      document.getElementById("registerForm").reset();
+      fileList = [];
+      displayFileList();
+      document.getElementById("registerForm").classList.remove("hidden");
+      document.getElementById("successModal").classList.add("hidden");
+      document.getElementById("step1").classList.remove("hidden");
+      document.getElementById("step2").classList.add("hidden");
+      document.querySelectorAll(".option-chip").forEach(chip => {
+        chip.classList.remove("selected");
+      });
+    }
+
+    /* ====== 11) Session Storage (Fields & Current Step) ====== */
+    const textFields = [
+      "firstName","lastName","idNumber","phone","email","examDate",
+      "background","reason","testResults","summaryText","careerAdvice","representativeName"
+    ];
+    function storeAllFields() {
+      textFields.forEach(fieldId => {
+        const el = document.getElementById(fieldId);
+        if (el) sessionStorage.setItem(fieldId, el.value);
+      });
+      const checkboxes = document.querySelectorAll("input[type='checkbox']");
+      let checkedArr = [];
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          checkedArr.push(cb.name + ":" + cb.value);
+        }
+      });
+      sessionStorage.setItem("checkedBoxes", JSON.stringify(checkedArr));
+
+      const noteTextareas = document.querySelectorAll("#additionalNotesContainer textarea");
+      let notesArray = [];
+      noteTextareas.forEach(ta => {
+        notesArray.push(ta.value);
+      });
+      sessionStorage.setItem("notesArray", JSON.stringify(notesArray));
+    }
+    function loadAllFields() {
+      textFields.forEach(fieldId => {
+        const savedVal = sessionStorage.getItem(fieldId);
+        if (savedVal !== null) {
+          document.getElementById(fieldId).value = savedVal;
+        }
+      });
+      const savedCheck = sessionStorage.getItem("checkedBoxes");
+      if (savedCheck) {
+        const arr = JSON.parse(savedCheck);
+        arr.forEach(item => {
+          const [cbName, cbValue] = item.split(":");
+          const cb = document.querySelector(`input[type='checkbox'][name='${cbName}'][value='${cbValue}']`);
+          if (cb) {
+            cb.checked = true;
+            toggleChip(cb);
+          }
+        });
+      }
+      const savedNotes = sessionStorage.getItem("notesArray");
+      if (savedNotes) {
+        const arr = JSON.parse(savedNotes);
+        const container = document.getElementById("additionalNotesContainer");
+        container.innerHTML = "";
+        arr.forEach(val => {
+          const row = document.createElement("div");
+          row.className = "note-row flex items-center mb-2";
+          const textarea = document.createElement("textarea");
+          textarea.className = "w-full border border-gray-300 rounded p-2";
+          textarea.rows = 2;
+          textarea.value = val;
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "remove-note ml-2 bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded-full";
+          removeBtn.textContent = "×";
+          removeBtn.addEventListener("click", function() {
+            if (textarea.value.trim() !== "") {
+              alert("יש למחוק את הטקסט לפני הסגירה");
+            } else {
+              container.removeChild(row);
+            }
+          });
+          row.appendChild(textarea);
+          row.appendChild(removeBtn);
+          container.appendChild(row);
+        });
+      }
+      const currentStep = sessionStorage.getItem("currentStep") || "step1";
+      if(currentStep === "step2") {
+        document.getElementById("step1").classList.add("hidden");
+        document.getElementById("step2").classList.remove("hidden");
+        updateTopBar();
+      } else {
+        document.getElementById("step2").classList.add("hidden");
+        document.getElementById("step1").classList.remove("hidden");
+      }
+    }
+    function clearSession() {
+      // מנקה את ה-session storage
+      sessionStorage.clear();
+      // מאפס את הטופס
+      document.getElementById("registerForm").reset();
+      // מאפס רשימת הקבצים
+      fileList = [];
+      displayFileList();
+      // מסיר את סגנונות הבחירה מכרטיסיות האפשרויות
+      document.querySelectorAll(".option-chip").forEach(chip => {
+        chip.classList.remove("selected");
+      });
+      // מסיר את מחלקת השגיאה ומסתיר הודעות שגיאה מכל השדות
+      document.querySelectorAll(".error").forEach(el => el.classList.remove("error"));
+      document.querySelectorAll(".error-message").forEach(el => el.style.display = "none");
+      // מאפס את אזור ההערות הנוספות
+      document.getElementById("additionalNotesContainer").innerHTML = `
+        <div class="note-row flex items-center mb-2">
+          <textarea class="w-full border border-gray-300 rounded p-2" rows="2"></textarea>
+        </div>`;
+      // החזר את המשתמש לעמוד הראשון
+      document.getElementById("step1").classList.remove("hidden");
+      document.getElementById("step2").classList.add("hidden");
+      window.scrollTo(0, 0);
+	}
+
+    window.addEventListener("load", function() {
+      loadAllFields();
+
+      const form = document.getElementById("registerForm");
+      form.addEventListener("input", storeAllFields);
+      form.addEventListener("change", storeAllFields);
+
+      pinned = localStorage.getItem("pinned") === "true";
+      updatePinIcon();
+
+      /* Immediate validations on blur (unchanged) */
+      document.getElementById("firstName").addEventListener("blur", validateFirstName);
+      document.getElementById("lastName").addEventListener("blur", validateLastName);
+
+      document.getElementById("idNumber").addEventListener("blur", function() {
+        validateFieldGeneric(this, /^\d{9}$/, 0, "תעודת זהות חייבת להיות 9 ספרות");
+      });
+      document.getElementById("phone").addEventListener("input", function() {
+        let newValue = this.value.replace(/\D/g, "");
+        if(newValue.startsWith("972") && newValue.length > 10){
+          newValue = "0" + newValue.slice(3);
+        }
+        if(newValue.length > 10) {
+          newValue = newValue.slice(0,10);
+        }
+        this.value = newValue;
+      });
+	  document.getElementById("firstName").addEventListener("input", function() {
+        this.value = this.value.replace(/\d/g, "");
+      });
+      document.getElementById("lastName").addEventListener("input", function() {
+        this.value = this.value.replace(/\d/g, "");
+      });
+      
+      document.getElementById("phone").addEventListener("blur", function() {
+        validateFieldGeneric(this, /^\d{10}$/, 0, "מספר טלפון חייב להיות 10 ספרות");
+      });
+      document.getElementById("email").addEventListener("blur", validateEmail);
+      document.getElementById("background").addEventListener("blur", function() {
+        validateFieldGeneric(this, null, 1, "יש להזין טקסט");
+      });
+      document.getElementById("reason").addEventListener("blur", function() {
+        validateFieldGeneric(this, null, 1, "יש להזין טקסט");
+      });
+      document.getElementById("examDate").addEventListener("blur", validateExamDate);
+
+      document.getElementById("summaryText").addEventListener("blur", function() {
+        validateFieldGeneric(this, null, 1, "שדה חובה");
+      });
+    });
+  </script>
+  
+</html>
